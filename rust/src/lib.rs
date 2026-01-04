@@ -10,27 +10,25 @@ pub fn set_panic_hook() {
 
 const DEFAULT_SIZES: [u32; 6] = [16, 32, 48, 64, 128, 256];
 
-#[wasm_bindgen]
-pub fn imgico(input: &[u8], sizes: Option<Vec<u32>>) -> Result<Vec<u8>, JsValue> {
+pub fn imgico_core(input: &[u8], sizes: Option<Vec<u32>>) -> Result<Vec<u8>, String> {
     let sizes = sizes.unwrap_or_else(|| DEFAULT_SIZES.to_vec());
-    let img = image::load_from_memory(input)
-        .map_err(|e| JsValue::from_str(&format!("Failed to load image: {}", e)))?;
+    let img = image::load_from_memory(input).map_err(|e| format!("Failed to load image: {}", e))?;
 
     let mut images = Vec::new();
 
     for size in sizes {
         if size < 1 || size > 256 {
-            return Err(JsValue::from_str(&format!(
+            return Err(format!(
                 "Invalid icon size: {}. Size must be between 1 and 256.",
                 size
-            )));
+            ));
         }
 
         let resized = img.resize(size, size, image::imageops::FilterType::Lanczos3);
         let mut buffer = Cursor::new(Vec::new());
         resized
             .write_to(&mut buffer, ImageOutputFormat::Png)
-            .map_err(|e| JsValue::from_str(&format!("Failed to write PNG: {}", e)))?;
+            .map_err(|e| format!("Failed to write PNG: {}", e))?;
 
         images.push((buffer.into_inner(), size));
     }
@@ -74,9 +72,12 @@ pub fn imgico(input: &[u8], sizes: Option<Vec<u32>>) -> Result<Vec<u8>, JsValue>
 }
 
 #[wasm_bindgen]
-pub fn imgsvg(input: &[u8], size: Option<u32>) -> Result<Vec<u8>, JsValue> {
-    let img = image::load_from_memory(input)
-        .map_err(|e| JsValue::from_str(&format!("Failed to load image: {}", e)))?;
+pub fn imgico(input: &[u8], sizes: Option<Vec<u32>>) -> Result<Vec<u8>, JsValue> {
+    imgico_core(input, sizes).map_err(|e| JsValue::from_str(&e))
+}
+
+pub fn imgsvg_core(input: &[u8], size: Option<u32>) -> Result<Vec<u8>, String> {
+    let img = image::load_from_memory(input).map_err(|e| format!("Failed to load image: {}", e))?;
 
     let final_img = if let Some(s) = size {
         img.resize(s, s, image::imageops::FilterType::Lanczos3)
@@ -87,7 +88,7 @@ pub fn imgsvg(input: &[u8], size: Option<u32>) -> Result<Vec<u8>, JsValue> {
     let mut buffer = Cursor::new(Vec::new());
     final_img
         .write_to(&mut buffer, ImageOutputFormat::Png)
-        .map_err(|e| JsValue::from_str(&format!("Failed to write PNG: {}", e)))?;
+        .map_err(|e| format!("Failed to write PNG: {}", e))?;
 
     let png_data = buffer.into_inner();
     let width = final_img.width();
@@ -103,4 +104,9 @@ pub fn imgsvg(input: &[u8], size: Option<u32>) -> Result<Vec<u8>, JsValue> {
     );
 
     Ok(svg.into_bytes())
+}
+
+#[wasm_bindgen]
+pub fn imgsvg(input: &[u8], size: Option<u32>) -> Result<Vec<u8>, JsValue> {
+    imgsvg_core(input, size).map_err(|e| JsValue::from_str(&e))
 }
