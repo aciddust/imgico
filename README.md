@@ -7,7 +7,7 @@ Convert images (png, jpg, svg, etc.) to ICO format using ...
 - [node](./node/README.md)
   - [npm](https://www.npmjs.com/package/imgico)
 - [rust](./rust/README.md)
-  - [crate](https://crates.io/crates/imgico/0.1.0)
+  - [crate](https://crates.io/crates/imgico)
 
 ## example
 
