@@ -292,6 +292,7 @@
       </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script type="module">
       import init, { imgico, imgsvg } from "./imgico.js";
 
@@ -417,35 +418,52 @@
           const arrayBuffer = await currentFile.arrayBuffer();
           const inputBuffer = new Uint8Array(arrayBuffer);
 
-          // 선택된 크기로 ICO 변환
-          const sizesArray = new Uint32Array(selectedSizes);
-          const icoData = imgico(inputBuffer, sizesArray);
+          // ZIP 파일 생성
+          const zip = new JSZip();
 
-          // 다운로드
-          download(icoData, "icon.ico");
+          // 각 크기별로 ICO 파일 생성
+          let previewHTML = "";
+          const icoUrls = [];
 
-          // 미리보기 표시
-          const blob = new Blob([icoData], { type: "image/x-icon" });
-          const url = URL.createObjectURL(blob);
+          for (const size of selectedSizes) {
+            // 개별 크기로 ICO 변환
+            const sizesArray = new Uint32Array([size]);
+            const icoData = imgico(inputBuffer, sizesArray);
 
-          // 각 크기별로 미리보기 생성
-          let previewHTML = selectedSizes
-            .map(
-              (size) => `
-                <div class="preview-box">
-                  <h3>${size}x${size}</h3>
-                  <img src="${url}" alt="ICO ${size}x${size}" style="width: ${size}px; height: ${size}px;">
-                </div>
-              `
-            )
-            .join("");
+            // ZIP에 추가
+            zip.file(`icon_${size}x${size}.ico`, icoData);
+
+            // 미리보기를 위한 URL 생성
+            const blob = new Blob([icoData], { type: "image/x-icon" });
+            const url = URL.createObjectURL(blob);
+            icoUrls.push(url);
+
+            previewHTML += `
+              <div class="preview-box">
+                <h3>${size}x${size}</h3>
+                <img src="${url}" alt="ICO ${size}x${size}" style="width: ${size}px; height: ${size}px;">
+              </div>
+            `;
+          }
+
+          // 전체 크기를 포함하는 ICO 파일도 추가
+          const allSizesArray = new Uint32Array(selectedSizes);
+          const allSizesIcoData = imgico(inputBuffer, allSizesArray);
+          zip.file("icon_all_sizes.ico", allSizesIcoData);
+
+          // ZIP 파일 생성 및 다운로드
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          downloadBlob(zipBlob, "icons.zip");
 
           previewHTML += `
             <div class="preview-box">
-              <h3>전체 ICO 파일</h3>
-              <p style="color: #666;">크기: ${(icoData.length / 1024).toFixed(2)} KB</p>
+              <h3>ZIP 파일</h3>
+              <p style="color: #666;">크기: ${(zipBlob.size / 1024).toFixed(2)} KB</p>
               <p style="color: #999; margin-top: 5px; font-size: 0.9em;">
-                포함된 크기: ${selectedSizes.join(", ")}
+                ${selectedSizes.length + 1}개 ICO 파일 포함
+              </p>
+              <p style="color: #999; font-size: 0.85em; margin-top: 3px;">
+                크기: ${selectedSizes.join(", ")}, 전체
               </p>
             </div>
           `;
@@ -454,7 +472,7 @@
           previewArea.className = "preview-area active";
 
           showStatus(
-            `ICO 변환이 완료되었습니다! (${selectedSizes.length}개 크기 포함)`,
+            `ICO 변환이 완료되었습니다! (${selectedSizes.length + 1}개 파일 ZIP 압축)`,
             "success"
           );
         } catch (e) {
@@ -472,35 +490,47 @@
           const arrayBuffer = await currentFile.arrayBuffer();
           const inputBuffer = new Uint8Array(arrayBuffer);
 
-          // SVG 변환 (크기 지정 없음, 벡터 형식이므로)
-          const svgData = imgsvg(inputBuffer);
-          const svgString = new TextDecoder().decode(svgData);
+          // ZIP 파일 생성
+          const zip = new JSZip();
 
-          // 다운로드
-          download(svgData, "image.svg");
+          // 다양한 크기의 SVG 파일 생성
+          const svgSizes = [64, 128, 256, 512, 1024];
+          let previewHTML = "";
 
-          // 미리보기 표시 - 여러 크기로
-          const blob = new Blob([svgData], { type: "image/svg+xml" });
-          const url = URL.createObjectURL(blob);
+          for (const size of svgSizes) {
+            // 각 크기로 SVG 변환
+            const svgData = imgsvg(inputBuffer, size);
 
-          const previewSizes = [64, 128, 256];
-          let previewHTML = previewSizes
-            .map(
-              (size) => `
+            // ZIP에 추가
+            zip.file(`image_${size}x${size}.svg`, svgData);
+
+            // 첫 3개만 미리보기 표시
+            if (svgSizes.indexOf(size) < 3) {
+              const blob = new Blob([svgData], { type: "image/svg+xml" });
+              const url = URL.createObjectURL(blob);
+
+              previewHTML += `
                 <div class="preview-box">
                   <h3>${size}x${size}</h3>
-                  <img src="${url}" alt="SVG ${size}x${size}" style="width: ${size}px; height: ${size}px;">
+                  <img src="${url}" alt="SVG ${size}x${size}" style="width: 128px; height: 128px;">
                 </div>
-              `
-            )
-            .join("");
+              `;
+            }
+          }
+
+          // ZIP 파일 생성 및 다운로드
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          downloadBlob(zipBlob, "images.zip");
 
           previewHTML += `
             <div class="preview-box">
-              <h3>SVG 정보</h3>
-              <p style="color: #666;">크기: ${(svgData.length / 1024).toFixed(2)} KB</p>
+              <h3>ZIP 파일</h3>
+              <p style="color: #666;">크기: ${(zipBlob.size / 1024).toFixed(2)} KB</p>
               <p style="color: #999; margin-top: 5px; font-size: 0.9em;">
-                벡터 형식으로 모든 크기 지원
+                ${svgSizes.length}개 SVG 파일 포함
+              </p>
+              <p style="color: #999; font-size: 0.85em; margin-top: 3px;">
+                크기: ${svgSizes.join(", ")}
               </p>
             </div>
           `;
@@ -508,7 +538,7 @@
           previewGrid.innerHTML = previewHTML;
           previewArea.className = "preview-area active";
 
-          showStatus("SVG 변환이 완료되었습니다!", "success");
+          showStatus(`SVG 변환이 완료되었습니다! (${svgSizes.length}개 파일 ZIP 압축)`, "success");
         } catch (e) {
           showStatus("SVG 변환 실패: " + e.message, "error");
         } finally {
@@ -518,6 +548,15 @@
 
       function download(data, filename) {
         const blob = new Blob([data], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function downloadBlob(blob, filename) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
