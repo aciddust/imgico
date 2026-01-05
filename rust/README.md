@@ -3,6 +3,7 @@
 High-performance image to ICO/SVG converter built with Rust.
 
 **Features:**
+
 - 🦀 **Pure Rust** - Fast and memory-safe
 - 🌐 **WebAssembly Support** - Run in the browser
 - 🖼️ **Multiple Formats** - ICO (multi-size) and SVG output
@@ -13,11 +14,11 @@ High-performance image to ICO/SVG converter built with Rust.
 
 ### As a Rust Library
 
-Add to your `Cargo.toml`:
+If you wanna specific version, add to your Cargo.toml:
 
 ```toml
 [dependencies]
-imgico = "0.1"
+imgico = "0.1.2"
 ```
 
 ### As a CLI Tool
@@ -148,12 +149,14 @@ convertImage();
 Convert an image to ICO format.
 
 **Parameters:**
+
 - `input` - Input image data (PNG, JPEG, WebP, etc.)
 - `sizes` - Optional vector of icon sizes. Default: `[16, 32, 48, 64, 128, 256]`
 
 **Returns:** ICO file data as bytes
 
 **Example:**
+
 ```rust
 let ico = imgico_core(&image_data, Some(vec![16, 32, 64]))?;
 ```
@@ -163,12 +166,14 @@ let ico = imgico_core(&image_data, Some(vec![16, 32, 64]))?;
 Convert an image to SVG format with embedded PNG.
 
 **Parameters:**
+
 - `input` - Input image data
 - `size` - Optional target width/height. If `None`, uses original size
 
 **Returns:** SVG file data as bytes
 
 **Example:**
+
 ```rust
 let svg = imgsvg_core(&image_data, Some(512))?;
 ```
@@ -180,12 +185,14 @@ let svg = imgsvg_core(&image_data, Some(512))?;
 Convert an image to ICO format.
 
 **Parameters:**
+
 - `input` - Input image data as `Uint8Array`
 - `sizes` - Optional array of icon sizes. Default: `[16, 32, 48, 64, 128, 256]`
 
 **Returns:** ICO file data as `Uint8Array`
 
 **Example:**
+
 ```javascript
 const icoData = imgico(inputBuffer, new Uint32Array([16, 32]));
 ```
@@ -195,12 +202,14 @@ const icoData = imgico(inputBuffer, new Uint32Array([16, 32]));
 Convert an image to SVG format.
 
 **Parameters:**
-- `input` - Input image data as `Uint8Array`  
+
+- `input` - Input image data as `Uint8Array`
 - `size` - Optional target width/height
 
 **Returns:** SVG file data as `Uint8Array`
 
 **Example:**
+
 ```javascript
 const svgData = imgsvg(inputBuffer, 512);
 const svgString = new TextDecoder().decode(svgData);
@@ -235,6 +244,7 @@ cargo test
 ## Performance
 
 The library is optimized for both speed and size:
+
 - Uses Lanczos3 filtering for high-quality resizing
 - WebAssembly build is ~430KB (optimized)
 - Fast processing with minimal memory overhead
