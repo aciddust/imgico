@@ -24,7 +24,17 @@ pub fn imgico_core(input: &[u8], sizes: Option<Vec<u32>>) -> Result<Vec<u8>, Str
             ));
         }
 
-        let resized = img.resize(size, size, image::imageops::FilterType::Lanczos3);
+        // Make square by cropping from center
+        let (width, height) = (img.width(), img.height());
+        let min_dim = width.min(height);
+        let x_offset = (width - min_dim) / 2;
+        let y_offset = (height - min_dim) / 2;
+
+        let square_img = img.crop_imm(x_offset, y_offset, min_dim, min_dim);
+
+        // Resize to exact dimensions (no aspect ratio preservation)
+        let resized = square_img.resize_exact(size, size, image::imageops::FilterType::Lanczos3);
+
         let mut buffer = Cursor::new(Vec::new());
         resized
             .write_to(&mut buffer, ImageOutputFormat::Png)
@@ -80,7 +90,14 @@ pub fn imgsvg_core(input: &[u8], size: Option<u32>) -> Result<Vec<u8>, String> {
     let img = image::load_from_memory(input).map_err(|e| format!("Failed to load image: {}", e))?;
 
     let final_img = if let Some(s) = size {
-        img.resize(s, s, image::imageops::FilterType::Lanczos3)
+        // Make square by cropping from center
+        let (width, height) = (img.width(), img.height());
+        let min_dim = width.min(height);
+        let x_offset = (width - min_dim) / 2;
+        let y_offset = (height - min_dim) / 2;
+
+        let square_img = img.crop_imm(x_offset, y_offset, min_dim, min_dim);
+        square_img.resize_exact(s, s, image::imageops::FilterType::Lanczos3)
     } else {
         img
     };
