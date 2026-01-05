@@ -3,6 +3,14 @@ name = "imgico"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
+description = "High-performance image to ICO/SVG converter with WebAssembly support"
+repository = "https://github.com/aciddust/imgico"
+homepage = "https://github.com/aciddust/imgico"
+documentation = "https://docs.rs/imgico"
+readme = "README.md"
+keywords = ["image", "ico", "icon", "svg", "wasm"]
+categories = ["multimedia::images", "web-programming", "wasm"]
+authors = ["aciddust"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -1,46 +1,97 @@
-# imgico (Wasm)
+# imgico
 
-High-performance image to ICO/SVG converter for the browser, built with Rust and WebAssembly.
-This is the WebAssembly port of the `imgico` library, allowing client-side image conversion without server dependencies.
+High-performance image to ICO/SVG converter built with Rust.
 
-## Features
+**Features:**
+- 🦀 **Pure Rust** - Fast and memory-safe
+- 🌐 **WebAssembly Support** - Run in the browser
+- 🖼️ **Multiple Formats** - ICO (multi-size) and SVG output
+- 🎯 **Simple API** - Easy to use in both Rust and JavaScript
+- ⚡ **High Performance** - Optimized for speed and size
 
-- **Client-side Conversion**: Convert images directly in the browser.
-- **Fast & Efficient**: Powered by Rust and WebAssembly.
-- **Small Footprint**: Optimized for size (~430KB).
-- **Supports**:
-  - Image to ICO (multiple sizes)
-  - Image to SVG (embedded PNG)
+## Installation
 
-## Build
+### As a Rust Library
 
-To build the project from source:
+Add to your `Cargo.toml`:
 
-1. **Install Rust**: [https://rustup.rs/](https://rustup.rs/)
-2. **Install wasm-pack**:
-
-```bash
-cargo install wasm-pack
+```toml
+[dependencies]
+imgico = "0.1"
 ```
 
-3. **Build**:
+### As a CLI Tool
 
 ```bash
+cargo install imgico
+```
+
+### For WebAssembly
+
+Build from source:
+
+```bash
+# Install wasm-pack
+cargo install wasm-pack
+
+# Build
 wasm-pack build --target web
 ```
 
-This will generate a `pkg` directory which can be imported into your web application.
-
 ## Usage
 
-### Initialization
+### Rust Library
 
-You must initialize the Wasm module before using the conversion functions.
+```rust
+use imgico::{imgico_core, imgsvg_core};
+use std::fs;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Read input image
+    let input = fs::read("input.png")?;
+
+    // Convert to ICO with default sizes [16, 32, 48, 64, 128, 256]
+    let ico_data = imgico_core(&input, None)?;
+    fs::write("output.ico", ico_data)?;
+
+    // Convert to ICO with custom sizes
+    let custom_ico = imgico_core(&input, Some(vec![16, 32, 48]))?;
+    fs::write("custom.ico", custom_ico)?;
+
+    // Convert to SVG (default size)
+    let svg_data = imgsvg_core(&input, None)?;
+    fs::write("output.svg", svg_data)?;
+
+    // Convert to SVG with specific size
+    let sized_svg = imgsvg_core(&input, Some(512))?;
+    fs::write("output_512.svg", sized_svg)?;
+
+    Ok(())
+}
+```
+
+### CLI Usage
+
+Convert image to ICO format:
+
+```bash
+imgico input.png -f ico
+```
+
+Convert image to SVG format:
+
+```bash
+imgico input.png -f svg
+```
+
+This creates a directory with timestamped name containing multiple sizes (16, 32, 48, 64, 128, 256).
+
+### WebAssembly (Browser)
 
 ```javascript
 import init, { imgico, imgsvg } from './pkg/imgico.js';
 
-async function main() {
+async function convertImage() {
   // Initialize the Wasm module
   await init();
 
@@ -49,25 +100,25 @@ async function main() {
   const arrayBuffer = await response.arrayBuffer();
   const inputBuffer = new Uint8Array(arrayBuffer);
 
-  // 1. Convert to ICO
+  // Convert to ICO with default sizes
   try {
-    // Default sizes: [16, 32, 48, 64, 128, 256]
     const icoData = imgico(inputBuffer);
-
-    // Download or use the ICO data
-    download(icoData, 'icon.ico');
-    // Custom sizes
-    const customIcoData = imgico(inputBuffer, new Uint32Array([16, 32]));
+    downloadFile(icoData, 'icon.ico');
   } catch (e) {
     console.error('ICO conversion failed:', e);
   }
 
-  // 2. Convert to SVG
+  // Convert to ICO with custom sizes
   try {
-    // Optional size argument
-    const svgData = imgsvg(inputBuffer, 512);
+    const customIco = imgico(inputBuffer, new Uint32Array([16, 32, 64]));
+    downloadFile(customIco, 'custom.ico');
+  } catch (e) {
+    console.error('Custom ICO conversion failed:', e);
+  }
 
-    // Convert bytes to string if needed
+  // Convert to SVG
+  try {
+    const svgData = imgsvg(inputBuffer, 512);
     const svgString = new TextDecoder().decode(svgData);
     console.log(svgString);
   } catch (e) {
@@ -75,7 +126,7 @@ async function main() {
   }
 }
 
-function download(data, filename) {
+function downloadFile(data, filename) {
   const blob = new Blob([data], { type: 'application/octet-stream' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -85,52 +136,109 @@ function download(data, filename) {
   URL.revokeObjectURL(url);
 }
 
-main();
+convertImage();
 ```
 
-## CLI Usage
+## API Reference
 
-You can also use `imgico` as a command-line tool.
+### Rust
 
-### Installation
+#### `imgico_core(input: &[u8], sizes: Option<Vec<u32>>) -> Result<Vec<u8>, String>`
+
+Convert an image to ICO format.
+
+**Parameters:**
+- `input` - Input image data (PNG, JPEG, WebP, etc.)
+- `sizes` - Optional vector of icon sizes. Default: `[16, 32, 48, 64, 128, 256]`
+
+**Returns:** ICO file data as bytes
+
+**Example:**
+```rust
+let ico = imgico_core(&image_data, Some(vec![16, 32, 64]))?;
+```
+
+#### `imgsvg_core(input: &[u8], size: Option<u32>) -> Result<Vec<u8>, String>`
+
+Convert an image to SVG format with embedded PNG.
+
+**Parameters:**
+- `input` - Input image data
+- `size` - Optional target width/height. If `None`, uses original size
+
+**Returns:** SVG file data as bytes
+
+**Example:**
+```rust
+let svg = imgsvg_core(&image_data, Some(512))?;
+```
+
+### WebAssembly (JavaScript)
+
+#### `imgico(input: Uint8Array, sizes?: Uint32Array) -> Uint8Array`
+
+Convert an image to ICO format.
+
+**Parameters:**
+- `input` - Input image data as `Uint8Array`
+- `sizes` - Optional array of icon sizes. Default: `[16, 32, 48, 64, 128, 256]`
+
+**Returns:** ICO file data as `Uint8Array`
+
+**Example:**
+```javascript
+const icoData = imgico(inputBuffer, new Uint32Array([16, 32]));
+```
+
+#### `imgsvg(input: Uint8Array, size?: number) -> Uint8Array`
+
+Convert an image to SVG format.
+
+**Parameters:**
+- `input` - Input image data as `Uint8Array`  
+- `size` - Optional target width/height
+
+**Returns:** SVG file data as `Uint8Array`
+
+**Example:**
+```javascript
+const svgData = imgsvg(inputBuffer, 512);
+const svgString = new TextDecoder().decode(svgData);
+```
+
+## Supported Input Formats
+
+- PNG
+- JPEG
+- WebP
+- GIF
+- BMP
+- And more (via the `image` crate)
+
+## Building from Source
 
 ```bash
-cargo install --path .
+# Clone the repository
+git clone https://github.com/aciddust/imgico
+cd imgico/rust
+
+# Build Rust library/CLI
+cargo build --release
+
+# Build WebAssembly
+wasm-pack build --target web --release
+
+# Run tests
+cargo test
 ```
 
-### Usage
+## Performance
 
-```bash
-imgico <input_file> [options]
-```
-
-Options:
-
-- `-f, --format <type>`: Output format: 'ico' or 'svg' (default: ico)
-- `-h, --help`: Show help message
-
-Example:
-
-```bash
-imgico input.png -f ico
-```
-
-## API
-
-### `imgico(input, sizes?)`
-
-- `input`: `Uint8Array` - The input image data.
-- `sizes`: `Uint32Array | number[]` (optional) - List of sizes to include in the ICO. Default: `[16, 32, 48, 64, 128, 256]`.
-
-Returns: `Uint8Array` (The generated ICO file data).
-
-### `imgsvg(input, size?)`
-
-- `input`: `Uint8Array` - The input image data.
-- `size`: `number` (optional) - The target width/height for the embedded image. If omitted, uses original size.
-
-Returns: `Uint8Array` (The generated SVG file data as bytes).
+The library is optimized for both speed and size:
+- Uses Lanczos3 filtering for high-quality resizing
+- WebAssembly build is ~430KB (optimized)
+- Fast processing with minimal memory overhead
 
 ## License
 
-ISC
+MIT OR Apache-2.0
